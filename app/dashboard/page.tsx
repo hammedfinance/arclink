@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import {
@@ -9,6 +8,23 @@ import {
   getDynamicFullName,
   getDynamicWalletAddress,
 } from "@/lib/dynamicIdentity";
+import {
+  Alert,
+  AppShell,
+  Badge,
+  Button,
+  ButtonLink,
+  Card,
+  Container,
+  DataRow,
+  EmptyState,
+  Field,
+  MetricCard,
+  MotionPanel,
+  PageSection,
+  ProductNav,
+  Skeleton,
+} from "@/components/ui/system";
 
 type WalletData = {
   wallet_id?: string | null;
@@ -50,6 +66,17 @@ type PaymentLinkData = {
   created_at?: string | null;
 };
 
+type TransactionData = {
+  id?: string;
+  sender_email: string;
+  recipient_email: string;
+  amount: string | number;
+  status?: string | null;
+  transaction_id?: string | null;
+  message?: string | null;
+  created_at?: string | null;
+};
+
 export default function DashboardPage() {
   const router = useRouter();
   const { handleLogOut, primaryWallet, sdkHasLoaded, user } =
@@ -59,6 +86,7 @@ export default function DashboardPage() {
   const [balance, setBalance] = useState("0.00");
   const [balances, setBalances] = useState<Balance[]>([]);
   const [paymentLinks, setPaymentLinks] = useState<PaymentLinkData[]>([]);
+  const [transactions, setTransactions] = useState<TransactionData[]>([]);
   const [usernameInput, setUsernameInput] = useState("");
   const [savingUsername, setSavingUsername] = useState(false);
   const [profileMessage, setProfileMessage] = useState("");
@@ -119,19 +147,35 @@ export default function DashboardPage() {
       setWallet(sync.wallet ?? null);
 
       if (sync.user?.id) {
-        const linksRes = await fetch("/api/payments/list", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user_id: sync.user.id }),
-        });
+        const [linksRes, transactionsRes] = await Promise.all([
+          fetch("/api/payments/list", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: sync.user.id }),
+          }),
+          fetch("/api/transactions/list", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: sync.user.id, limit: 8 }),
+          }),
+        ]);
         const linksData = (await linksRes.json()) as {
           success?: boolean;
           paymentLinks?: PaymentLinkData[];
         };
+        const transactionsData = (await transactionsRes.json()) as {
+          success?: boolean;
+          transactions?: TransactionData[];
+        };
 
-        if (linksRes.ok && linksData.success) {
-          setPaymentLinks(linksData.paymentLinks ?? []);
-        }
+        setPaymentLinks(
+          linksRes.ok && linksData.success ? linksData.paymentLinks ?? [] : []
+        );
+        setTransactions(
+          transactionsRes.ok && transactionsData.success
+            ? transactionsData.transactions ?? []
+            : []
+        );
       }
 
       const circleWalletId =
@@ -173,6 +217,7 @@ export default function DashboardPage() {
     } catch (e) {
       setBalances([]);
       setPaymentLinks([]);
+      setTransactions([]);
       setBalance("0.00");
       setError(e instanceof Error ? e.message : "Could not load wallet.");
     } finally {
@@ -250,309 +295,276 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-100 dark:bg-zinc-950">
-      <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white/85 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/85">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
-        <Link
-          href="/"
-          className="text-xl font-black tracking-tight text-purple-700 transition hover:text-purple-600 dark:text-purple-400 dark:hover:text-purple-300 sm:text-2xl"
-        >
-          ARCLINK
-        </Link>
-
-        <div className="flex min-w-0 items-center gap-3">
-          <p className="max-w-44 truncate text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-            {displayName}
-          </p>
-          <button
-            type="button"
-            onClick={() => void logout()}
-            className="rounded-lg bg-zinc-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
-          >
+    <AppShell>
+      <ProductNav
+        label="Dashboard"
+        userLabel={displayName}
+        action={
+          <Button type="button" variant="secondary" size="sm" onClick={() => void logout()}>
             Logout
-          </button>
-        </div>
-        </div>
-      </header>
+          </Button>
+        }
+      />
 
-      <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-black tracking-tight text-zinc-950 dark:text-white">
-              Dashboard
-            </h1>
-            <p className="mt-2 font-medium leading-relaxed text-zinc-700 dark:text-zinc-300">
-              Manage your wallet, receive payments, and track transactions.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => void loadWalletAndBalance()}
-            disabled={loading}
-            className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-bold text-zinc-900 transition hover:bg-zinc-50 disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
-          >
-            {loading ? "Refreshing..." : "Refresh Balance"}
-          </button>
-        </div>
-
-        {error ? (
-          <p className="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300">
-            {error}
-          </p>
-        ) : null}
-
-        <div className="mt-8 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-          <div className="border-b border-zinc-100 bg-zinc-50 px-5 py-4 dark:border-zinc-800 dark:bg-zinc-950/60 sm:px-8">
-            <p className="text-sm font-bold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">
-              Arc Testnet wallet
-            </p>
-          </div>
-          <div className="p-5 sm:p-8">
-          <p className="text-sm font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">
-            Total Balance
-          </p>
-          <h2 className="mt-2 text-4xl font-black tracking-tight text-zinc-950 tabular-nums dark:text-white sm:text-5xl">
-            {loading ? "..." : balance}{" "}
-            <span className="text-2xl text-purple-700 dark:text-purple-400 sm:text-3xl">
-              USDC
-            </span>
-          </h2>
-          <p className="mt-2 font-semibold text-zinc-700 tabular-nums dark:text-zinc-300">
-            {loading ? "Loading wallet + balance..." : `~ $${balance}`}
-          </p>
-
-          <div className="mt-6 grid gap-3 sm:flex sm:flex-wrap">
-            <button
-              type="button"
-              onClick={() => router.push("/wallet/receive")}
-              className="rounded-lg bg-purple-600 px-6 py-3 font-semibold text-white transition hover:bg-purple-500 dark:bg-purple-500 dark:hover:bg-purple-400"
-            >
-              Receive
-            </button>
-
-            <button
-              type="button"
-              onClick={() => router.push("/wallet/send")}
-              className="rounded-lg bg-zinc-950 px-6 py-3 font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
-            >
-              Send
-            </button>
-
-            <button
-              type="button"
-              onClick={() => router.push("/pay/create")}
-              className="rounded-lg border border-zinc-300 px-6 py-3 font-semibold text-zinc-900 transition hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-100 dark:hover:bg-zinc-800"
-            >
-              Create Payment Link
-            </button>
-          </div>
-          </div>
-        </div>
-
-        <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 sm:p-6">
-          <p className="text-sm font-bold uppercase tracking-wide text-purple-700 dark:text-purple-300">
-            Checklist
-          </p>
-          <h2 className="mt-2 text-xl font-black tracking-tight text-zinc-950 dark:text-white">
-            Get ready to receive
-          </h2>
-          <div className="mt-5 space-y-3">
-            <ChecklistItem done={Boolean(walletId)} text="ARCLINK wallet created" />
-            <ChecklistItem done={Number(balance) > 0} text="Fund wallet with Arc Testnet USDC" />
-            <ChecklistItem done={paymentLinks.length > 0} text="Create your first payment link" />
-          </div>
-          <button
-            type="button"
-            onClick={() => router.push("/pay/create")}
-            className="mt-6 w-full rounded-lg bg-purple-600 py-3 font-semibold text-white transition hover:bg-purple-500 dark:bg-purple-500 dark:hover:bg-purple-400"
-          >
-            Create Payment Link
-          </button>
-        </div>
-        </div>
-
-        <div className="mt-8 rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 sm:p-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
+      <PageSection>
+        <Container>
+          <MotionPanel className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-bold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">
+              <Badge>Payment workspace</Badge>
+              <h1 className="mt-4 text-4xl font-black tracking-tight text-white sm:text-5xl">
+                Dashboard
+              </h1>
+              <p className="mt-3 max-w-2xl leading-7 text-slate-400">
+                Manage your wallet, receive payments, track activity, and send
+                USDC through ARCLINK.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => void loadWalletAndBalance()}
+              disabled={loading}
+            >
+              {loading ? "Refreshing..." : "Refresh Balance"}
+            </Button>
+          </MotionPanel>
+
+          {error ? (
+            <Alert tone="red" className="mt-6">
+              {error}
+            </Alert>
+          ) : null}
+
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            <MetricCard label="Available balance" value={loading ? "..." : balance} suffix="USDC" />
+            <MetricCard label="Recent payments" value={String(transactions.length)} />
+            <MetricCard label="Payment links" value={String(paymentLinks.length)} />
+          </div>
+
+          <div className="mt-8 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+            <Card className="overflow-hidden p-0">
+              <div className="border-b border-white/[0.08] bg-white/[0.035] px-5 py-4 sm:px-8">
+                <p className="text-sm font-bold uppercase tracking-[0.16em] text-slate-400">
+                  Arc Testnet wallet
+                </p>
+              </div>
+              <div className="p-5 sm:p-8">
+                <p className="text-sm font-semibold uppercase tracking-wide text-slate-400">
+                  Total Balance
+                </p>
+                {loading ? (
+                  <Skeleton className="mt-3 h-14 w-64" />
+                ) : (
+                  <h2 className="mt-2 text-5xl font-black tracking-tight text-white tabular-nums sm:text-6xl">
+                    {balance} <span className="text-2xl text-blue-200">USDC</span>
+                  </h2>
+                )}
+                <p className="mt-3 font-semibold text-slate-400 tabular-nums">
+                  {loading ? "Loading wallet and balance..." : `~ $${balance}`}
+                </p>
+
+                <div className="mt-7 grid gap-3 sm:flex sm:flex-wrap">
+                  <Button type="button" onClick={() => router.push("/wallet/receive")}>
+                    Receive Money
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => router.push("/wallet/send")}
+                  >
+                    Send Money
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => router.push("/pay/create")}
+                  >
+                    Create Payment Link
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => router.push("/transactions")}
+                  >
+                    View Activity
+                  </Button>
+                </div>
+              </div>
+            </Card>
+
+            <Card>
+              <Badge>Readiness</Badge>
+              <h2 className="mt-4 text-2xl font-black tracking-tight text-white">
+                Get ready to receive
+              </h2>
+              <div className="mt-5 space-y-3">
+                <ChecklistItem done={Boolean(walletId)} text="ARCLINK wallet created" />
+                <ChecklistItem done={Number(balance) > 0} text="Fund wallet with Arc Testnet USDC" />
+                <ChecklistItem done={paymentLinks.length > 0} text="Create your first payment link" />
+              </div>
+              <Button
+                type="button"
+                onClick={() => router.push("/pay/create")}
+                className="mt-6 w-full"
+              >
+                Create Payment Link
+              </Button>
+            </Card>
+          </div>
+
+          <div className="mt-8 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+            <Card>
+              <p className="text-sm font-bold uppercase tracking-[0.16em] text-slate-400">
                 Profile
               </p>
-              <h2 className="mt-1 text-xl font-black tracking-tight text-zinc-950 dark:text-white">
+              <h2 className="mt-2 text-2xl font-black tracking-tight text-white">
                 Choose your display username
               </h2>
-              <p className="mt-2 text-sm font-semibold text-zinc-600 dark:text-zinc-400">
-                This name appears in your dashboard and on payment pages instead
-                of your email.
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                This appears in your dashboard and on payment pages instead of
+                your email.
               </p>
-            </div>
-            <div className="rounded-lg bg-zinc-50 px-4 py-3 text-sm font-bold text-zinc-800 dark:bg-zinc-950 dark:text-zinc-200">
-              Showing as: {displayName}
-            </div>
-          </div>
-
-          <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto]">
-            <input
-              value={usernameInput}
-              onChange={(event) => setUsernameInput(event.target.value)}
-              placeholder="Choose a username"
-              className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 font-semibold text-zinc-950 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-600 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
-            />
-            <button
-              type="button"
-              onClick={() => void saveUsername()}
-              disabled={savingUsername}
-              className="rounded-lg bg-zinc-950 px-5 py-3 font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-60 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
-            >
-              {savingUsername ? "Saving..." : "Save Username"}
-            </button>
-          </div>
-
-          {profileError ? (
-            <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300">
-              {profileError}
-            </p>
-          ) : null}
-
-          {profileMessage ? (
-            <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300">
-              {profileMessage}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="mt-8 grid gap-6 md:grid-cols-2">
-          <div className="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-            <h4 className="text-lg font-bold text-zinc-950 dark:text-white">
-              Wallet Address
-            </h4>
-            <p className="mt-2 break-all font-mono text-sm font-medium leading-relaxed text-zinc-800 dark:text-zinc-200">
-              {walletAddress}
-            </p>
-          </div>
-
-          <div className="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-            <h4 className="text-lg font-bold text-zinc-950 dark:text-white">
-              Circle Wallet ID
-            </h4>
-            <p className="mt-2 break-all font-mono text-sm font-medium leading-relaxed text-zinc-800 dark:text-zinc-200">
-              {walletId || "Not loaded"}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-8 rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 sm:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-bold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">
-                Payment activity
-              </p>
-              <h2 className="mt-1 text-xl font-black tracking-tight text-zinc-950 dark:text-white">
-                Recent payment links
-              </h2>
-            </div>
-            <button
-              type="button"
-              onClick={() => router.push("/pay/create")}
-              className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-bold text-zinc-900 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800"
-            >
-              New link
-            </button>
-          </div>
-
-          {paymentLinks.length ? (
-            <div className="mt-5 divide-y divide-zinc-200 dark:divide-zinc-800">
-              {paymentLinks.map((link) => (
-                <div
-                  key={link.id ?? link.slug}
-                  className="grid gap-3 py-4 sm:grid-cols-[1fr_auto] sm:items-center"
+              <div className="mt-5 space-y-3">
+                <Field
+                  label="Username"
+                  value={usernameInput}
+                  onChange={(event) => setUsernameInput(event.target.value)}
+                  placeholder="Choose a username"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => void saveUsername()}
+                  disabled={savingUsername}
+                  className="w-full"
                 >
-                  <div className="min-w-0">
-                    <p className="truncate font-bold text-zinc-950 dark:text-white">
-                      {link.title}
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-zinc-600 dark:text-zinc-400">
-                      {formatPaymentDate(link.created_at)} -{" "}
-                      <Link
-                        href={`/pay/${link.slug}`}
-                        className="text-purple-700 hover:underline dark:text-purple-300"
-                      >
-                        /pay/{link.slug}
-                      </Link>
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 sm:justify-end">
-                    <p className="font-mono font-bold text-zinc-950 dark:text-white">
-                      {link.amount} USDC
-                    </p>
-                    <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold uppercase text-amber-700 dark:bg-amber-950 dark:text-amber-300">
-                      {link.status ?? "open"}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="mt-5 rounded-lg bg-zinc-50 p-5 text-sm font-semibold text-zinc-700 dark:bg-zinc-950 dark:text-zinc-300">
-              No payment links yet. Create one and send it to a client.
-            </div>
-          )}
-        </div>
-
-        <div className="mt-8 grid gap-6 md:grid-cols-2">
-          <div className="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-            <h4 className="text-lg font-bold text-zinc-950 dark:text-white">
-              Network
-            </h4>
-            <p className="mt-2 text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-              {wallet?.blockchain ?? "ARC-TESTNET"}
-            </p>
-            <p className="mt-2 font-bold text-emerald-600 dark:text-emerald-400">
-              Connected
-            </p>
-          </div>
-
-          <div className="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-            <h4 className="text-lg font-bold text-zinc-950 dark:text-white">
-              Circle Returned Tokens
-            </h4>
-            {balances.length ? (
-              <div className="mt-3 space-y-2">
-                {balances.map((item) => (
-                  <div
-                    key={`${item.token?.id ?? item.token?.symbol}-${item.amount}`}
-                    className="flex justify-between gap-4 text-sm"
-                  >
-                    <span className="font-semibold text-zinc-800 dark:text-zinc-200">
-                      {item.token?.symbol ?? item.token?.name ?? "Unknown"}
-                    </span>
-                    <span className="font-mono text-zinc-700 dark:text-zinc-300">
-                      {item.amount}
-                    </span>
-                  </div>
-                ))}
+                  {savingUsername ? "Saving..." : "Save Username"}
+                </Button>
               </div>
-            ) : (
-              <p className="mt-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-                No balances returned yet.
-              </p>
-            )}
+              {profileError ? (
+                <Alert tone="red" className="mt-4">
+                  {profileError}
+                </Alert>
+              ) : null}
+              {profileMessage ? (
+                <Alert className="mt-4">{profileMessage}</Alert>
+              ) : null}
+            </Card>
+
+            <Card>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-bold uppercase tracking-[0.16em] text-slate-400">
+                    Account activity
+                  </p>
+                  <h2 className="mt-2 text-2xl font-black tracking-tight text-white">
+                    Recent email payments
+                  </h2>
+                </div>
+                <Button type="button" variant="secondary" size="sm" onClick={() => router.push("/wallet/send")}>
+                  Send
+                </Button>
+              </div>
+
+              {transactions.length ? (
+                <div className="mt-5 overflow-hidden rounded-2xl border border-white/[0.08]">
+                  {transactions.map((transaction) => (
+                    <div
+                      key={transaction.id ?? transaction.transaction_id}
+                      className="grid gap-3 border-b border-white/[0.06] px-4 py-4 last:border-b-0 sm:grid-cols-[1fr_auto] sm:items-center"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-bold text-white">
+                          {transaction.sender_email === email ? "Sent to" : "Received from"}{" "}
+                          {transaction.sender_email === email
+                            ? transaction.recipient_email
+                            : transaction.sender_email}
+                        </p>
+                        <p className="mt-1 text-sm font-semibold text-slate-400">
+                          {formatPaymentDate(transaction.created_at)}
+                          {transaction.message ? ` - ${transaction.message}` : ""}
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between gap-3 sm:justify-end">
+                        <p className="font-mono font-bold text-white">
+                          {transaction.sender_email === email ? "-" : "+"}
+                          {transaction.amount} USDC
+                        </p>
+                        <Badge tone={transaction.status === "failed" ? "red" : "amber"}>
+                          {transaction.status ?? "pending"}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState
+                  title="No payments yet"
+                  text="Send or receive USDC with an email address and activity will appear here."
+                  action={<ButtonLink href="/wallet/send">Send first payment</ButtonLink>}
+                />
+              )}
+            </Card>
           </div>
-        </div>
-      </section>
-    </main>
+
+          <div className="mt-8 grid gap-6 md:grid-cols-2">
+            <Card>
+              <h3 className="text-lg font-black text-white">Wallet Address</h3>
+              <p className="mt-3 break-all font-mono text-sm font-semibold leading-7 text-slate-300">
+                {walletAddress}
+              </p>
+            </Card>
+            <Card>
+              <h3 className="text-lg font-black text-white">Circle Wallet ID</h3>
+              <p className="mt-3 break-all font-mono text-sm font-semibold leading-7 text-slate-300">
+                {walletId || "Not loaded"}
+              </p>
+            </Card>
+          </div>
+
+          <div className="mt-8 grid gap-6 md:grid-cols-2">
+            <Card>
+              <h3 className="text-lg font-black text-white">Network</h3>
+              <p className="mt-2 text-sm font-semibold text-slate-300">
+                {wallet?.blockchain ?? "ARC-TESTNET"}
+              </p>
+              <Badge>Connected</Badge>
+            </Card>
+            <Card>
+              <h3 className="text-lg font-black text-white">Circle Returned Tokens</h3>
+              {balances.length ? (
+                <div className="mt-4 space-y-3">
+                  {balances.map((item) => (
+                    <DataRow
+                      key={`${item.token?.id ?? item.token?.symbol}-${item.amount}`}
+                      label={item.token?.symbol ?? item.token?.name ?? "Unknown"}
+                      value={item.amount}
+                      mono
+                    />
+                  ))}
+                </div>
+              ) : (
+                <EmptyState
+                  title="No balances returned"
+                  text="Token balances will appear here after Circle returns assets for this wallet."
+                />
+              )}
+            </Card>
+          </div>
+        </Container>
+      </PageSection>
+    </AppShell>
   );
 }
 
 function ChecklistItem({ done, text }: { done: boolean; text: string }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg bg-zinc-50 p-3 text-sm font-semibold text-zinc-800 dark:bg-zinc-950 dark:text-zinc-200">
+    <div className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.045] p-3 text-sm font-semibold text-slate-300">
       <span
         className={`h-3 w-3 shrink-0 rounded-full ${
           done
-            ? "bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.14)]"
-            : "bg-red-500 shadow-[0_0_0_4px_rgba(239,68,68,0.14)]"
+            ? "bg-blue-300 shadow-[0_0_0_4px_rgba(96,165,250,0.14)]"
+            : "bg-red-400 shadow-[0_0_0_4px_rgba(248,113,113,0.14)]"
         }`}
         aria-hidden
       />

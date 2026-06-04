@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { useRouter } from "next/navigation";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
@@ -10,6 +9,18 @@ import {
   getDynamicFullName,
   getDynamicWalletAddress,
 } from "@/lib/dynamicIdentity";
+import {
+  Alert,
+  AppShell,
+  Badge,
+  Button,
+  Card,
+  Container,
+  DataRow,
+  PageSection,
+  ProductNav,
+  Skeleton,
+} from "@/components/ui/system";
 
 type WalletData = {
   address?: string | null;
@@ -87,77 +98,77 @@ export default function ReceivePage() {
     return () => cancelAnimationFrame(frame);
   }, [loadWallet, primaryWallet, router, sdkHasLoaded, user]);
 
-  async function copyAddress() {
-    await navigator.clipboard.writeText(walletAddress);
+  async function copyEmail() {
+    await navigator.clipboard.writeText(email);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
 
   return (
-    <main className="min-h-screen bg-zinc-100 dark:bg-zinc-950">
-      <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white/85 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/85">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
-          <Link
-            href="/"
-            className="text-xl font-black tracking-tight text-purple-700 transition hover:text-purple-600 dark:text-purple-400 dark:hover:text-purple-300 sm:text-2xl"
-          >
-            ARCLINK
-          </Link>
-          <button
-            type="button"
-            onClick={() => router.push("/dashboard")}
-            className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-bold text-zinc-900 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
-          >
+    <AppShell>
+      <ProductNav
+        label="Receive money"
+        action={
+          <Button type="button" variant="secondary" size="sm" onClick={() => router.push("/dashboard")}>
             Dashboard
-          </button>
-        </div>
-      </header>
+          </Button>
+        }
+      />
 
-      <section className="mx-auto grid max-w-6xl gap-6 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
-      <div className="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-        <p className="text-sm font-bold uppercase tracking-wide text-purple-700 dark:text-purple-300">
-          Receive funds
-        </p>
+      <PageSection>
+        <Container className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+          <Card>
+            <Badge>Receive funds</Badge>
+            <h1 className="mt-4 text-4xl font-black tracking-tight text-white">
+              Receive USDC using your email address.
+            </h1>
+            <p className="mt-4 leading-7 text-slate-400">
+              Share your ARCLINK email with clients and teammates. They can send
+              USDC without seeing wallet addresses or chain details.
+            </p>
 
-        <h1 className="mt-3 text-3xl font-black tracking-tight text-zinc-950 dark:text-white">
-          Receive USDC
-        </h1>
-        <p className="mt-3 leading-7 text-zinc-700 dark:text-zinc-300">
-          Share your Arc Testnet wallet address or QR code with your client.
-        </p>
+            {error ? (
+              <Alert tone="red" className="mt-6">
+                {error}
+              </Alert>
+            ) : null}
 
-        {error ? (
-          <p className="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300">
-            {error}
-          </p>
-        ) : null}
+            <div className="mt-6">
+              {loading ? (
+                <Skeleton className="h-24 w-full" />
+              ) : (
+                <DataRow label="Your ARCLINK email" value={email} />
+              )}
+            </div>
 
-        <div className="mt-6 break-all rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-600 dark:bg-zinc-950">
-          <p className="font-mono text-xs font-semibold leading-6 text-zinc-900 dark:text-zinc-100 sm:text-sm">
-            {loading ? "Loading wallet..." : walletAddress}
-          </p>
-        </div>
+            <Button
+              type="button"
+              onClick={() => void copyEmail()}
+              disabled={loading || !email}
+              className="mt-5 w-full"
+            >
+              {copied ? "Copied!" : "Copy Email"}
+            </Button>
 
-        <button
-          type="button"
-          onClick={() => void copyAddress()}
-          disabled={loading || !wallet}
-          className="mt-4 w-full rounded-lg bg-purple-600 py-3 font-semibold text-white transition hover:bg-purple-500 disabled:opacity-60 dark:bg-purple-500 dark:hover:bg-purple-400"
-        >
-          {copied ? "Copied!" : "Copy Address"}
-        </button>
-      </div>
+            <div className="mt-5">
+              <DataRow label="Technical wallet address" value={walletAddress} mono />
+            </div>
+          </Card>
 
-      <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 sm:p-8">
-        <div className="flex justify-center rounded-lg bg-white p-4">
-          <QRCodeSVG value={walletAddress} size={200} />
-        </div>
-
-        <p className="mt-6 text-center text-xs font-semibold text-zinc-600 dark:text-zinc-400">
-          Only send USDC on Arc Testnet to this address.
-        </p>
-      </div>
-      </section>
-    </main>
+          <Card className="p-6 sm:p-8">
+            <div className="mx-auto flex max-w-sm justify-center rounded-3xl border border-white/[0.08] bg-white p-5">
+              <QRCodeSVG value={`arclink:${email}`} size={220} />
+            </div>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <DataRow label="Identifier" value="Email" />
+              <DataRow label="Asset" value="USDC" />
+            </div>
+            <Alert tone="slate" className="mt-5 text-center">
+              Ask senders to use your email inside ARCLINK.
+            </Alert>
+          </Card>
+        </Container>
+      </PageSection>
+    </AppShell>
   );
 }

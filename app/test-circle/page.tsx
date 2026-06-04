@@ -1,7 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import {
+  AppShell,
+  Badge,
+  Button,
+  Card,
+  Container,
+  PageSection,
+  ProductNav,
+} from "@/components/ui/system";
 
 function ts() {
   return new Date().toLocaleTimeString(undefined, { hour12: false });
@@ -9,7 +17,7 @@ function ts() {
 
 export default function TestCirclePage() {
   const [logs, setLogs] = useState<string[]>([
-    `[${ts()}] Ready. Click “Create Wallet” to call POST /api/wallet/create.`,
+    `[${ts()}] Ready. Click "Create wallet" to call POST /api/wallet/create.`,
   ]);
   const [loading, setLoading] = useState(false);
   const terminalEndRef = useRef<HTMLDivElement>(null);
@@ -53,74 +61,58 @@ export default function TestCirclePage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col bg-zinc-100 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
-      <div className="flex-1 px-6 py-8 max-w-2xl mx-auto w-full">
-        <Link
-          href="/"
-          className="text-sm font-semibold text-purple-700 dark:text-purple-400 hover:underline"
-        >
-          ← Home
-        </Link>
+    <AppShell>
+      <ProductNav label="Circle test" />
+      <PageSection>
+        <Container className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
+          <Card>
+            <Badge>Developer utility</Badge>
+            <h1 className="mt-4 text-4xl font-black tracking-tight text-white">
+              Circle wallet test
+            </h1>
+            <p className="mt-4 text-sm leading-7 text-slate-400">
+              Output appears in the terminal panel. This calls the existing
+              wallet creation endpoint and leaves backend behavior unchanged.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Button type="button" onClick={createWallet} disabled={loading}>
+                {loading ? "Creating..." : "Create wallet"}
+              </Button>
+              <Button type="button" variant="secondary" onClick={clearTerminal}>
+                Clear terminal
+              </Button>
+            </div>
+          </Card>
 
-        <h1 className="text-3xl font-bold mt-4 tracking-tight">
-          Circle wallet test
-        </h1>
-        <p className="text-zinc-600 dark:text-zinc-400 mt-2 text-sm leading-relaxed">
-          Output appears in the terminal panel below (browser-only mock, not your
-          real Cursor terminal).
-        </p>
-
-        <div className="mt-6 flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={createWallet}
-            disabled={loading}
-            className="bg-purple-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-purple-500 disabled:opacity-50 dark:bg-purple-500 dark:hover:bg-purple-400"
-          >
-            {loading ? "Creating…" : "Create wallet"}
-          </button>
-          <button
-            type="button"
-            onClick={clearTerminal}
-            className="border-2 border-zinc-300 dark:border-zinc-600 px-6 py-3 rounded-xl font-semibold text-zinc-800 dark:text-zinc-200 hover:bg-zinc-200/60 dark:hover:bg-zinc-800"
-          >
-            Clear terminal
-          </button>
-        </div>
-      </div>
-
-      {/* Fake terminal docked to bottom */}
-      <div className="shrink-0 border-t border-zinc-700 dark:border-zinc-800 shadow-[0_-8px_30px_rgba(0,0,0,0.12)]">
-        <div className="bg-zinc-900 text-zinc-100 font-mono text-[13px] leading-relaxed">
-          <div className="flex items-center justify-between gap-2 px-3 py-2 bg-zinc-950 border-b border-zinc-800">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="flex gap-1.5 shrink-0" aria-hidden>
-                <span className="h-2.5 w-2.5 rounded-full bg-red-500/90" />
-                <span className="h-2.5 w-2.5 rounded-full bg-amber-400/90" />
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/90" />
-              </span>
-              <span className="text-zinc-400 truncate text-xs tracking-wide uppercase">
-                arclink — mock terminal
+          <Card className="overflow-hidden p-0">
+            <div className="flex items-center justify-between gap-2 border-b border-white/[0.08] bg-[#020617] px-4 py-3 font-mono">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-blue-300/90" />
+                <span className="h-2.5 w-2.5 rounded-full bg-blue-500/90" />
+                <span className="h-2.5 w-2.5 rounded-full bg-slate-500/90" />
+                <span className="truncate text-xs uppercase tracking-wide text-slate-400">
+                  arclink / mock terminal
+                </span>
+              </div>
+              <span className="hidden text-xs tabular-nums text-slate-500 sm:inline">
+                {logs.length} lines
               </span>
             </div>
-            <span className="text-zinc-500 text-xs tabular-nums hidden sm:inline">
-              {logs.length} lines
-            </span>
-          </div>
-          <div
-            className="h-[min(40vh,280px)] overflow-y-auto px-3 py-2 whitespace-pre-wrap break-words text-emerald-100/95 selection:bg-purple-500/40"
-            role="log"
-            aria-live="polite"
-          >
-            {logs.map((line, i) => (
-              <div key={i} className="py-0.5">
-                {line}
-              </div>
-            ))}
-            <div ref={terminalEndRef} />
-          </div>
-        </div>
-      </div>
-    </main>
+            <div
+              className="arclink-scrollbar h-[min(52vh,420px)] overflow-y-auto whitespace-pre-wrap break-words bg-[#020617]/90 px-4 py-3 font-mono text-[13px] leading-relaxed text-blue-100 selection:bg-blue-500/40"
+              role="log"
+              aria-live="polite"
+            >
+              {logs.map((line, i) => (
+                <div key={i} className="py-0.5">
+                  {line}
+                </div>
+              ))}
+              <div ref={terminalEndRef} />
+            </div>
+          </Card>
+        </Container>
+      </PageSection>
+    </AppShell>
   );
 }

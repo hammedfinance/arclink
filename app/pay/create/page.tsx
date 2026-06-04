@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import {
@@ -9,9 +8,18 @@ import {
   getDynamicFullName,
   getDynamicWalletAddress,
 } from "@/lib/dynamicIdentity";
-
-const inputClass =
-  "mt-1 w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-zinc-950 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-600 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder:text-zinc-400";
+import {
+  Alert,
+  AppShell,
+  Badge,
+  Button,
+  Card,
+  Container,
+  DataRow,
+  Field,
+  PageSection,
+  ProductNav,
+} from "@/components/ui/system";
 
 type SyncResult = {
   success?: boolean;
@@ -115,121 +123,86 @@ export default function CreatePaymentLinkPage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-100 dark:bg-zinc-950">
-      <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white/85 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/85">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
-          <Link
-            href="/"
-            className="text-xl font-black tracking-tight text-purple-700 transition hover:text-purple-600 dark:text-purple-400 dark:hover:text-purple-300 sm:text-2xl"
-          >
-            ARCLINK
-          </Link>
-          <button
-            type="button"
-            onClick={() => router.push("/dashboard")}
-            className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-bold text-zinc-900 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
-          >
+    <AppShell>
+      <ProductNav
+        label="Create payment"
+        action={
+          <Button type="button" variant="secondary" size="sm" onClick={() => router.push("/dashboard")}>
             Dashboard
-          </button>
-        </div>
-      </header>
+          </Button>
+        }
+      />
 
-      <section className="mx-auto grid max-w-6xl gap-6 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
-        <div className="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-          <p className="text-sm font-bold uppercase tracking-wide text-purple-700 dark:text-purple-300">
-            Client checkout
-          </p>
-          <h1 className="mt-3 text-3xl font-black tracking-tight text-zinc-950 dark:text-white">
-            Create Payment Link
-          </h1>
-          <p className="mt-3 leading-7 text-zinc-700 dark:text-zinc-300">
-            Generate a shareable Arc Testnet USDC checkout page for your client.
-          </p>
-
-          <div className="mt-6 grid gap-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-            <div className="rounded-lg bg-zinc-50 p-4 dark:bg-zinc-950">
-              Each link is tied to your logged-in ARCLINK wallet.
-            </div>
-            <div className="rounded-lg bg-zinc-50 p-4 dark:bg-zinc-950">
-              Clients can scan, copy, or pay directly after logging in.
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 sm:p-8">
-        <form onSubmit={handleGenerate} className="space-y-5">
-          <div>
-            <label className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-              Title
-            </label>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Website Design Payment"
-              className={inputClass}
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-              Amount (USDC)
-            </label>
-            <input
-              type="number"
-              min="0"
-              step="0.000001"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="50"
-              className={`${inputClass} font-semibold tabular-nums`}
-            />
-          </div>
-
-          {error ? (
-            <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300">
-              {error}
+      <PageSection>
+        <Container className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+          <Card>
+            <Badge>Client checkout</Badge>
+            <h1 className="mt-4 text-4xl font-black tracking-tight text-white">
+              Create Payment Link
+            </h1>
+            <p className="mt-4 leading-7 text-slate-400">
+              Generate a shareable Arc Testnet USDC checkout page for a client.
+              The link is tied to your synced ARCLINK wallet.
             </p>
-          ) : null}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-purple-600 py-3 font-semibold text-white transition hover:bg-purple-500 disabled:opacity-60 dark:bg-purple-500 dark:hover:bg-purple-400"
-          >
-            {loading ? "Creating..." : "Generate Link"}
-          </button>
-        </form>
-
-        {generatedLink ? (
-          <div className="mt-8 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-600 dark:bg-zinc-950">
-            <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-              Your Payment Link:
-            </p>
-            <p className="mt-2 break-all text-sm font-semibold text-purple-700 dark:text-purple-300">
-              {generatedLink}
-            </p>
-
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => navigator.clipboard.writeText(generatedLink)}
-                className="rounded-lg bg-zinc-950 py-2 font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
-              >
-                Copy Link
-              </button>
-
-              <button
-                type="button"
-                onClick={goToCheckout}
-                className="rounded-lg border border-zinc-300 py-2 font-semibold text-zinc-900 transition hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-100 dark:hover:bg-zinc-800"
-              >
-                Preview
-              </button>
+            <div className="mt-6 grid gap-3">
+              <DataRow label="Rail" value="Circle wallet infrastructure" />
+              <DataRow label="Asset" value="USDC on Arc Testnet" />
+              <DataRow label="Recipient" value="Share by email or direct link" />
             </div>
-          </div>
-        ) : null}
-        </div>
-      </section>
-    </main>
+          </Card>
+
+          <Card className="p-6 sm:p-8">
+            <form onSubmit={handleGenerate} className="space-y-5">
+              <Field
+                label="Title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Website Design Payment"
+              />
+
+              <Field
+                label="Amount (USDC)"
+                type="number"
+                min="0"
+                step="0.000001"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="50"
+                className="font-mono tabular-nums"
+              />
+
+              {error ? <Alert tone="red">{error}</Alert> : null}
+
+              <Button type="submit" disabled={loading} className="w-full">
+                {loading ? "Creating..." : "Generate Link"}
+              </Button>
+            </form>
+
+            {generatedLink ? (
+              <div className="mt-8 rounded-3xl border border-blue-300/20 bg-blue-500/10 p-5">
+                <p className="text-sm font-black uppercase tracking-wide text-blue-100">
+                  Your Payment Link
+                </p>
+                <p className="mt-3 break-all font-mono text-sm font-semibold text-white">
+                  {generatedLink}
+                </p>
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => navigator.clipboard.writeText(generatedLink)}
+                  >
+                    Copy Link
+                  </Button>
+                  <Button type="button" onClick={goToCheckout}>
+                    Preview
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+          </Card>
+        </Container>
+      </PageSection>
+    </AppShell>
   );
 }

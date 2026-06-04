@@ -47,6 +47,7 @@ export async function POST(request: Request) {
       : null;
 
     return NextResponse.json({
+      success: true,
       user: data.user
         ? {
             id: data.user.id,

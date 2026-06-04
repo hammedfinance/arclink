@@ -82,6 +82,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
+        success: true,
         user: user
           ? {
               id: user.id,

@@ -16,7 +16,7 @@ export function ThemeToggle() {
   if (!mounted) {
     return (
       <span
-        className="fixed bottom-5 right-5 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-zinc-300 bg-white shadow-md dark:border-zinc-600 dark:bg-zinc-900"
+        className="fixed bottom-5 right-5 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-white/[0.08] bg-[#111827] shadow-2xl shadow-black/30"
         aria-hidden
       />
     );
@@ -28,14 +28,14 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={() => setTheme(isDark ? "light" : "dark")}
-      className="fixed bottom-5 right-5 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-zinc-300 bg-white text-zinc-900 shadow-md transition hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+      className="fixed bottom-5 right-5 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-white/[0.08] bg-[#111827]/90 text-slate-100 shadow-2xl shadow-black/30 backdrop-blur-xl transition hover:border-blue-300/35 hover:bg-[#172033]"
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
       title={isDark ? "Light mode" : "Dark mode"}
     >
       {isDark ? (
-        <SunIcon className="h-5 w-5 text-amber-300" />
+        <SunIcon className="h-5 w-5 text-blue-200" />
       ) : (
-        <MoonIcon className="h-5 w-5 text-violet-700" />
+        <MoonIcon className="h-5 w-5 text-blue-300" />
       )}
     </button>
   );

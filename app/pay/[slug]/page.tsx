@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { useParams } from "next/navigation";
 import { DynamicWidget, useDynamicContext } from "@dynamic-labs/sdk-react-core";
@@ -10,6 +9,21 @@ import {
   getDynamicFullName,
   getDynamicWalletAddress,
 } from "@/lib/dynamicIdentity";
+import {
+  Alert,
+  AppShell,
+  Badge,
+  Button,
+  ButtonLink,
+  Card,
+  Container,
+  DataRow,
+  EmptyState,
+  MarketingNav,
+  Modal,
+  PageSection,
+  Skeleton,
+} from "@/components/ui/system";
 
 type PaymentLink = {
   slug: string;
@@ -195,241 +209,144 @@ export default function PaymentCheckoutPage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-100 dark:bg-zinc-950">
-      <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white/85 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/85">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
-          <Link
-            href="/"
-            className="text-xl font-black tracking-tight text-purple-700 transition hover:text-purple-600 dark:text-purple-400 dark:hover:text-purple-300 sm:text-2xl"
-          >
-            ARCLINK
-          </Link>
-          <Link
-            href="/auth"
-            className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-bold text-zinc-900 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
-          >
-            Login
-          </Link>
-        </div>
-      </header>
+    <AppShell>
+      <MarketingNav />
 
-      <section className="mx-auto grid max-w-6xl gap-6 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[1.1fr_0.9fr] lg:px-8">
-        <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 sm:p-8">
-          {loading ? (
-            <p className="font-semibold text-zinc-700 dark:text-zinc-300">
-              Loading payment...
-            </p>
-          ) : error && !paymentLink ? (
-            <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300">
-              {error}
-            </p>
-          ) : paymentLink ? (
-            <>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm font-bold uppercase tracking-wide text-purple-700 dark:text-purple-300">
-                  Payment Request
-                </p>
-                <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold uppercase text-amber-700 dark:bg-amber-950 dark:text-amber-300">
-                  {paymentLink.status ?? "open"}
-                </span>
+      <PageSection>
+        <Container className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr]">
+          <Card className="p-6 sm:p-8">
+            {loading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-8 w-40" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-40 w-full" />
               </div>
-              <h1 className="mt-3 text-3xl font-black tracking-tight text-zinc-950 dark:text-white sm:text-4xl">
-                {paymentLink.title}
-              </h1>
-
-              <p className="mt-3 font-medium text-zinc-800 dark:text-zinc-200">
-                Pay{" "}
-                <span className="font-bold text-zinc-950 dark:text-white">
-                  {freelancerName}
-                </span>
-              </p>
-
-              <div className="mt-6 rounded-lg border border-zinc-200 bg-zinc-50 p-5 dark:border-zinc-700 dark:bg-zinc-950">
-                <p className="text-sm font-bold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">
-                  Amount
-                </p>
-                <p className="mt-2 text-4xl font-black tracking-tight text-zinc-950 tabular-nums dark:text-white sm:text-5xl">
-                  {paymentLink.amount}{" "}
-                  <span className="text-2xl text-purple-700 dark:text-purple-400">
-                    USDC
-                  </span>
-                </p>
-              </div>
-
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                <InvoiceMeta label="Network" value="Arc Testnet" />
-                <InvoiceMeta label="Asset" value="USDC" />
-                <InvoiceMeta label="Invoice ID" value={paymentLink.slug} mono />
-              </div>
-
-              <div className="mt-6">
-                <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                  Send USDC on Arc Testnet to this address:
+            ) : error && !paymentLink ? (
+              <EmptyState
+                title="Payment link unavailable"
+                text={error}
+                action={<ButtonLink href="/auth">Login to ARCLINK</ButtonLink>}
+              />
+            ) : paymentLink ? (
+              <>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <Badge>Payment Request</Badge>
+                  <Badge tone="amber">{paymentLink.status ?? "open"}</Badge>
+                </div>
+                <h1 className="mt-5 text-4xl font-black tracking-tight text-white sm:text-5xl">
+                  {paymentLink.title}
+                </h1>
+                <p className="mt-4 font-medium text-slate-300">
+                  Pay <span className="font-bold text-white">{freelancerName}</span>
                 </p>
 
-                <div className="mt-2 break-all rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-600 dark:bg-zinc-950">
-                  <p className="font-mono text-xs font-semibold leading-6 text-zinc-900 dark:text-zinc-100 sm:text-sm">
-                    {walletAddress}
+                <div className="mt-7 rounded-3xl border border-white/[0.08] bg-white/[0.055] p-5">
+                  <p className="text-sm font-bold uppercase tracking-wide text-slate-400">
+                    Amount
+                  </p>
+                  <p className="mt-2 text-5xl font-black tracking-tight text-white tabular-nums sm:text-6xl">
+                    {paymentLink.amount}{" "}
+                    <span className="text-2xl text-blue-200">USDC</span>
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => void copyAddress()}
-                  className="mt-4 w-full rounded-lg bg-zinc-950 py-3 font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
-                >
-                  {copied ? "Copied!" : "Copy Address"}
-                </button>
-              </div>
+                <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                  <DataRow label="Network" value="Arc Testnet" />
+                  <DataRow label="Asset" value="USDC" />
+                  <DataRow label="Invoice ID" value={paymentLink.slug} mono />
+                </div>
 
-              {error ? (
-                <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300">
-                  {error}
-                </p>
-              ) : null}
+                <div className="mt-6">
+                  <p className="text-sm font-bold text-white">
+                    Send USDC on Arc Testnet to this address:
+                  </p>
+                  <div className="mt-3">
+                    <DataRow label="Recipient wallet" value={walletAddress} mono />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => void copyAddress()}
+                    className="mt-4 w-full"
+                  >
+                    {copied ? "Copied!" : "Copy Address"}
+                  </Button>
+                </div>
 
-              {message ? (
-                <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300">
-                  {message}
-                </p>
-              ) : null}
-            </>
+                {error ? (
+                  <Alert tone="red" className="mt-4">
+                    {error}
+                  </Alert>
+                ) : null}
+
+                {message ? (
+                  <Alert className="mt-4">{message}</Alert>
+                ) : null}
+              </>
+            ) : null}
+          </Card>
+
+          {paymentLink ? (
+            <aside>
+              <Card className="p-6">
+                <div className="flex justify-center rounded-3xl border border-white/[0.08] bg-white p-5">
+                  <QRCodeSVG value={walletAddress} size={220} />
+                </div>
+
+                <div className="mt-6">
+                  <DataRow label="Payment Link ID" value={paymentLink.slug} mono />
+                </div>
+
+                <div className="mt-6 rounded-3xl border border-white/[0.08] bg-white/[0.045] p-4">
+                  <p className="text-sm font-black text-white">What happens next</p>
+                  <div className="mt-3 space-y-2 text-sm font-semibold leading-6 text-slate-400">
+                    <p>1. Pay with the QR code, copied address, or Pay Now.</p>
+                    <p>2. Keep the receipt or transaction ID.</p>
+                    <p>3. The freelancer tracks the link from ARCLINK.</p>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex justify-center">
+                  <DynamicWidget />
+                </div>
+
+                {sdkHasLoaded && (user || primaryWallet) ? (
+                  <Button
+                    type="button"
+                    onClick={() => void payNow()}
+                    disabled={paying}
+                    className="mt-4 w-full"
+                  >
+                    {paying ? "Submitting Payment..." : "Pay Now"}
+                  </Button>
+                ) : (
+                  <Alert tone="slate" className="mt-4 text-center">
+                    Log in to pay directly from your ARCLINK wallet.
+                  </Alert>
+                )}
+
+                <Alert tone="slate" className="mt-5 text-center">
+                  Only send USDC on Arc Testnet.
+                </Alert>
+              </Card>
+            </aside>
           ) : null}
-        </div>
-
-        {paymentLink ? (
-          <aside className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 sm:p-6">
-            <div className="flex justify-center rounded-lg bg-white p-4">
-              <QRCodeSVG value={walletAddress} size={210} />
-            </div>
-
-            <div className="mt-6 rounded-lg bg-zinc-50 p-4 text-center dark:bg-zinc-950">
-              <p className="text-xs font-bold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                Payment Link ID
-              </p>
-              <p className="mt-2 break-all font-mono text-sm font-semibold text-zinc-900 dark:text-zinc-200">
-                {paymentLink.slug}
-              </p>
-            </div>
-
-            <div className="mt-6 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950">
-              <p className="text-sm font-bold text-zinc-950 dark:text-white">
-                What happens next
-              </p>
-              <div className="mt-3 space-y-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-                <p>1. Pay with the QR code, copied address, or Pay Now.</p>
-                <p>2. Keep the receipt or transaction ID.</p>
-                <p>3. The freelancer can track this link from ARCLINK.</p>
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-center">
-              <DynamicWidget />
-            </div>
-
-            {sdkHasLoaded && (user || primaryWallet) ? (
-              <button
-                type="button"
-                onClick={() => void payNow()}
-                disabled={paying}
-                className="mt-4 w-full rounded-lg bg-purple-600 py-3 font-semibold text-white transition hover:bg-purple-500 disabled:opacity-60 dark:bg-purple-500 dark:hover:bg-purple-400"
-              >
-                {paying ? "Submitting Payment..." : "Pay Now"}
-              </button>
-            ) : (
-              <p className="mt-4 text-center text-sm font-semibold text-zinc-600 dark:text-zinc-400">
-                Log in to pay directly from your ARCLINK wallet.
-              </p>
-            )}
-
-            <p className="mt-6 text-center text-xs font-semibold text-zinc-600 dark:text-zinc-400">
-              Only send USDC on Arc Testnet.
-            </p>
-          </aside>
-        ) : null}
-      </section>
+        </Container>
+      </PageSection>
 
       {receipt ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-zinc-950/60 px-4 py-4 backdrop-blur-sm sm:items-center">
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="payment-receipt-title"
-            className="w-full max-w-md rounded-lg border border-zinc-200 bg-white p-5 shadow-xl dark:border-zinc-700 dark:bg-zinc-900 sm:p-6"
-          >
-            <p className="text-sm font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
-              Payment submitted
-            </p>
-            <h2
-              id="payment-receipt-title"
-              className="mt-2 text-2xl font-black tracking-tight text-zinc-950 dark:text-white"
-            >
-              Receipt
-            </h2>
-            <div className="mt-5 space-y-3 text-sm">
-              <ReceiptRow label="Amount" value={`${receipt.amount} USDC`} />
-              <ReceiptRow label="Submitted" value={receipt.submittedAt} />
-              <ReceiptRow label="To" value={receipt.recipient} mono />
-              <ReceiptRow label="Transaction ID" value={receipt.transactionId} mono />
-            </div>
-            <button
-              type="button"
-              onClick={() => setReceipt(null)}
-              className="mt-6 w-full rounded-lg bg-purple-600 py-3 font-semibold text-white transition hover:bg-purple-500 dark:bg-purple-500 dark:hover:bg-purple-400"
-            >
-              Done
-            </button>
+        <Modal title="Receipt" eyebrow="Payment submitted" onClose={() => setReceipt(null)}>
+          <div className="space-y-3 text-sm">
+            <DataRow label="Amount" value={`${receipt.amount} USDC`} />
+            <DataRow label="Submitted" value={receipt.submittedAt} />
+            <DataRow label="To" value={receipt.recipient} mono />
+            <DataRow label="Transaction ID" value={receipt.transactionId} mono />
           </div>
-        </div>
+          <Button type="button" onClick={() => setReceipt(null)} className="mt-6 w-full">
+            Done
+          </Button>
+        </Modal>
       ) : null}
-    </main>
-  );
-}
-
-function InvoiceMeta({
-  label,
-  value,
-  mono,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
-  return (
-    <div className="rounded-lg bg-zinc-50 p-3 dark:bg-zinc-950">
-      <p className="text-xs font-bold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-        {label}
-      </p>
-      <p
-        className={`mt-1 break-all font-semibold text-zinc-950 dark:text-white ${
-          mono ? "font-mono text-xs" : "text-sm"
-        }`}
-      >
-        {value}
-      </p>
-    </div>
-  );
-}
-
-function ReceiptRow({
-  label,
-  value,
-  mono,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
-  return (
-    <div className="rounded-lg bg-zinc-50 p-3 dark:bg-zinc-950">
-      <p className="font-bold text-zinc-500 dark:text-zinc-400">{label}</p>
-      <p
-        className={`mt-1 break-all font-semibold text-zinc-950 dark:text-white ${
-          mono ? "font-mono text-xs" : ""
-        }`}
-      >
-        {value}
-      </p>
-    </div>
+    </AppShell>
   );
 }
